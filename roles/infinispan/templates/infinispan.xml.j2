@@ -91,6 +91,12 @@
       <replicated-cache name="work">
         <encoding media-type="application/x-protostream"/>
         <transaction mode="NON_XA"/>
+        <backups>
+{% for site in infinispan_jgroups_relay_sites %}
+{% if site != infinispan_jgroups_relay_site %}            <backup site="{{ site }}" strategy="ASYNC"/>
+{% endif %}
+{% endfor %}
+        </backups>
       </replicated-cache>
 {% for keycloak_cache in infinispan_keycloak_cache.caches %}
       <distributed-cache name="{{ keycloak_cache }}" mode="SYNC" owners="2" xmlns:jdbc="urn:infinispan:config:store:jdbc:12.0">
