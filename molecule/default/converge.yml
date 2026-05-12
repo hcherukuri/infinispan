@@ -83,6 +83,4 @@
         expiration_max_idle: 30000
         persistence: false
         statistics: false
-        indexing: true
-        indexing_entities:
-          - org.infinispan.server.configuration.AddressType
+        indexing: false
