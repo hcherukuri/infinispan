@@ -4,6 +4,14 @@ infinispan
 Install [Infinispan](https://infinispan.org/) or [Red Hat DataGrid](https://www.redhat.com/en/technologies/jboss-middleware/data-grid) server configurations.
 
 
+Requirements
+------------
+
+Infinispan 16.1+ requires Java 25, which is only available on RHEL 9.7+ and RHEL 10.1+ 
+For more details please go through the [official Infinispan 16.1 release notes](https://infinispan.org/blog/2026/02/04/infinispan-16-1)
+* RHEL 8 is not supported with Infinispan 16.1+ (Java 25 is not available), More [details](https://access.redhat.com/articles/1299013)
+* For RHEL 8 systems, use Infinispan 16.0.x or earlier versions
+
 Role Defaults
 -------------
 
@@ -31,7 +39,7 @@ Role Defaults
 |`infinispan_keystore_alias`| Alias for the certificate to load from keystore | `{{ inventory_hostname }}` |
 |`infinispan_keystore_key_password`| Key passphrase for TLS server identity | `''`|
 |`infinispan_keycloak_caches`| Creates remote caches for keycloak | `false` |
-|`infinispan_jvm_package`| RHEL java package runtime | `java-21-openjdk-headless` |
+|`infinispan_jvm_package`| RHEL java package runtime | `java-25-openjdk-headless` |
 |`infinispan_service_name`| Name of the systemd service unit, appended with `-{{infinispan_port_offset}}` when not 0 | `infinispan` |
 |`infinispan_service_desc` | Description of the systemd service unit | `Infinispan` |
 |`infinispan_service_restart_on_failure`| systemd restart-on-failure behavior activation | `true`` |
@@ -80,9 +88,9 @@ and `value` is explicit connection string.
 | Variable | Description | Default |
 |:---------|:------------|:--------|
 |`infinispan_offline_install`| Perform an offline install |`false`|
-|`infinispan_version`| Infinispan version to install | `14.0.13.Final` |
+|`infinispan_version`| Infinispan version to install | `16.1.4` |
 |`infinispan_bundle`| Archive name for Infinispan download | `infinispan-server-{{ infinispan_version }}.zip` |
-|`infinispan_download_url`| Download URL for infinispan | `https://downloads.jboss.org/infinispan/{{ infinispan_version }}/{{ infinispan_bundle }}` |
+|`infinispan_download_url`| Download URL for infinispan | `https://github.com/infinispan/infinispan/releases/download/{{ infinispan_version }}/{{ infinispan_bundle }}` |
 |`infinispan_dest`| Directory where to extract installation archives | `/opt/infinispan` |
 |`infinispan_installation_path`| Specific unxtracted installation path for infinispan | `/opt/infinispan/infinispan-server-{{ infinispan_version }}/` |
 |`infinispan_app_download_dir`| Directory where to download archives | `/opt/infinispan` |

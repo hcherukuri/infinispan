@@ -21,14 +21,6 @@ platforms:
     port_bindings:
       - ${PORT_BINDING:-8081}:8080
 
-  - name: instance-rhel8
-    image: registry.access.redhat.com/ubi8/ubi-init:latest
-    command: "/usr/sbin/init"
-    pre_build_image: true
-    privileged: true
-    port_bindings:
-      - ${PORT_BINDING:-8082}:8080
-
 provisioner:
   name: ansible
   config_options:
@@ -40,5 +32,3 @@ provisioner:
     host_vars:
       localhost:
         ansible_python_interpreter: "{{ ansible_playbook_python }}"
-      instance-rhel8:
-        ansible_python_interpreter: /usr/bin/python3.9

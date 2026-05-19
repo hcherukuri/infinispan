@@ -10,7 +10,7 @@ argument_specs:
                 description: "Ensure firewalld is running and configure infinispan/datagrid ports"
                 type: "bool"
             infinispan_version:
-                default: "16.0.5"
+                default: "16.1.4"
                 description: "Infinispan version to install"
                 type: "str"
             infinispan_bundle:
@@ -30,7 +30,7 @@ argument_specs:
                 description: "Perform an offline install"
                 type: "bool"
             infinispan_jvm_package:
-                default: "java-21-openjdk-headless"
+                default: "java-25-openjdk-headless"
                 description: "RHEL java package runtime"
                 type: "str"
             infinispan_java_home:

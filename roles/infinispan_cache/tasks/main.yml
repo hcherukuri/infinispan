@@ -39,22 +39,25 @@
     infinispan_cache_xml: "{{ lookup('template', 'templates/'+infinispan_cache_config.template+'-cache.j2') | replace('\n', '') }}"
   when: infinispan_cache_config is defined and infinispan_cache_config.name is defined
 
-- name: Check cache state and create if not existing
-  block:
-  - name: "Check cache {{ cache_name }} state"
-    ansible.builtin.uri:
-      url: "{{ infinispan_url }}{{ cache_name }}"
-      method: "GET"
-      user: "{{ infinispan_deployer_user }}"
-      password: "{{ infinispan_deployer_password }}"
-      force_basic_auth: true
-      status_code: 404
-    register: cache_status
-    retries: 5
-    delay: 5
-    until: cache_status.status != -1
+- name: "Check cache {{ cache_name }} state"
+  ansible.builtin.uri:
+    url: "{{ infinispan_url }}{{ cache_name }}"
+    method: "GET"
+    user: "{{ infinispan_deployer_user }}"
+    password: "{{ infinispan_deployer_password }}"
+    force_basic_auth: true
+    status_code:
+      - 200
+      - 404
+  register: cache_status
+  retries: 5
+  delay: 5
+  until: cache_status.status != -1
 
-  - name: "Create cache {{ cache_name }}"
+- name: "Create cache {{ cache_name }}"
+  when: cache_status.status == 404
+  block:
+  - name: "Create cache {{ cache_name }} via REST API"
     ansible.builtin.uri:
       url: "{{ infinispan_url }}{{ cache_name }}"
       method: "POST"
@@ -67,29 +70,52 @@
       status_code:
         - 200
         - 201
+        - 400  # May get 400 if cache created by cluster replication between check and create
     register: create_cache_response
+    changed_when:
+      - create_cache_response.status in [200, 201]
+    failed_when:
+      - create_cache_response.status not in [200, 201, 400]
+      - create_cache_response.status == 400 and 'already exists' not in (create_cache_response.content | default(''))
+
+  - name: "Cache {{ cache_name }} created by cluster (race condition)"
+    ansible.builtin.debug:
+      msg: "Cache {{ cache_name }} was created by cluster replication between check and create"
+    when:
+      - create_cache_response.status == 400
+      - "'already exists' in (create_cache_response.content | default(''))"
 
   rescue:
   - name: "Retry Create cache {{ cache_name }} using curl (Workaround)" # noqa command-instead-of-module
     ansible.builtin.command: >-
-      curl -X POST -u "{{ infinispan_deployer_user }}:{{ infinispan_deployer_password }}"
+      curl -s -w '\n%{http_code}' -X POST -u "{{ infinispan_deployer_user }}:{{ infinispan_deployer_password }}"
       -H "Content-Type: application/xml"
       -d '{{ infinispan_cache_xml | trim }}'
       "{{ infinispan_url }}{{ cache_name }}"
     register: curl_create
-    changed_when: true
-    when: 
-      - create_cache_response is defined
-      - create_cache_response.status == 400
+    changed_when:
+      - curl_create.stdout_lines[-1] in ['200', '201']
+      - "'already exists' not in curl_create.stdout"
+    failed_when:
+      - curl_create.stdout_lines[-1] not in ['200', '201', '400', '409']
+      - "'already exists' not in curl_create.stdout"
 
-  - name: Ignore cache already existing
+  - name: "Cache {{ cache_name }} created by cluster replication"
     ansible.builtin.debug:
-      msg: "Cache {{ cache_name }} already existing, skipping..."
-    when: cache_status.status in [200,204]
-
-  - name: Exit because rest call failed
-    ansible.builtin.fail:
-      msg: "Error while calling REST API"
+      msg: "Cache {{ cache_name }} was created by cluster replication between check and create (race condition)"
     when:
-      - cache_status.status not in [200,204]
-      - (curl_create is not defined) or (curl_create is defined and curl_create.rc != 0)
+      - curl_create is defined
+      - "'already exists' in curl_create.stdout"
+
+  - name: Exit because cache creation failed
+    ansible.builtin.fail:
+      msg: "Error while creating cache via REST API: {{ curl_create.stdout if curl_create is defined else create_cache_response.msg | default('Unknown error') }}"
+    when:
+      - curl_create is defined
+      - curl_create.failed | default(false)
+      - "'already exists' not in curl_create.stdout"
+
+- name: "Cache {{ cache_name }} already exists"
+  ansible.builtin.debug:
+    msg: "Cache {{ cache_name }} already exists, skipping creation..."
+  when: cache_status.status in [200, 204]
