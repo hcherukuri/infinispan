@@ -16,4 +16,4 @@ jobs:
     with:
       fqcn: 'middleware_automation/infinispan'
       molecule_tests: >-
-          [ "default" ]
+          [ "default", "vector-search" ]

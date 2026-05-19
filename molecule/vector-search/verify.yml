@@ -1,0 +1,87 @@
+---
+- name: Verify - Vector Search Functionality
+  hosts: all
+  tasks:
+    - name: Populate service facts
+      ansible.builtin.service_facts:
+
+    - name: Check if Infinispan service started
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services["infinispan.service"]["state"] == "running"
+          - ansible_facts.services["infinispan.service"]["status"] == "enabled"
+
+    - name: List all caches
+      ansible.builtin.uri:
+        url: http://localhost:11222/rest/v2/caches
+        url_username: "supervisor"
+        url_password: "vectorsearch123"
+      register: all_caches
+
+    - name: Verify products cache exists in cache list
+      ansible.builtin.assert:
+        that:
+          - "'products' in all_caches.json"
+        fail_msg: "Products cache not found in cache list"
+
+    - name: Check products cache status
+      ansible.builtin.uri:
+        url: http://localhost:11222/rest/v2/caches/products
+        url_username: "supervisor"
+        url_password: "vectorsearch123"
+        status_code: [200, 204]
+      register: products_cache_check
+
+    - name: Get vector search cache configuration
+      ansible.builtin.uri:
+        url: http://localhost:11222/rest/v2/caches/products?action=config
+        url_username: "supervisor"
+        url_password: "vectorsearch123"
+      register: vector_cache_config
+
+    - name: Wait for cache to be fully initialized
+      ansible.builtin.pause:
+        seconds: 10
+
+    - name: Run vector search test application (with retry)
+      ansible.builtin.command:
+        cmd: java -jar /tmp/vector-search-test.jar
+      environment:
+        INFINISPAN_HOST: localhost
+        INFINISPAN_PORT: "11222"
+        INFINISPAN_USER: "supervisor"
+        INFINISPAN_PASSWORD: "vectorsearch123"
+      register: vector_test_result
+      changed_when: false
+      failed_when: false
+      retries: 3
+      delay: 5
+      until: vector_test_result.rc == 0
+
+    - name: Verify vector search test succeeded
+      ansible.builtin.assert:
+        that:
+          - vector_test_result.rc == 0
+          - "'All Tests Passed' in vector_test_result.stdout"
+          - "'Basic kNN Search' in vector_test_result.stdout"
+          - "'Hybrid Search with Category Filter' in vector_test_result.stdout"
+          - "'Hybrid Search with Price Range' in vector_test_result.stdout"
+        fail_msg: |
+          Vector search test failed!
+          Return code: {{ vector_test_result.rc }}
+          STDOUT: {{ vector_test_result.stdout }}
+          STDERR: {{ vector_test_result.stderr }}
+
+    - name: Verify products cache has test data
+      ansible.builtin.uri:
+        url: http://localhost:11222/rest/v2/caches/products
+        url_username: "supervisor"
+        url_password: "vectorsearch123"
+        status_code: [200, 204]
+      register: products_cache_status
+
+    - name: Verify products cache contains 6 test products
+      ansible.builtin.assert:
+        that:
+          - products_cache_status.json.stats.approximate_entries_unique == 6
+        fail_msg: "Expected 6 products in cache after test, found {{ products_cache_status.json.stats.approximate_entries_unique }}"
