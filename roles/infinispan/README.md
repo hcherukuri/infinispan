@@ -242,6 +242,38 @@ infinispan_caches:
 It is possible to mix and match the two configurations in the `infinispan_caches` list.
 
 
+Vector Search Support
+---------------------
+
+Infinispan 15+ natively supports vector search for AI/ML use cases, allowing k-Nearest Neighbor (kNN) queries on vector embeddings.
+
+To enable vector search, your client application must:
+
+1. Define ProtoStream entities with `@Vector` annotations specifying dimension and similarity algorithm
+2. Register the ProtoStream schema with Infinispan when connecting
+3. Create indexed caches (either via the client API or using the templates in this role with `indexing: true` and `indexing_entities` pointing to your registered schemas)
+
+The Ansible role supports configuring indexed caches through the `indexing` parameter:
+
+```yaml
+infinispan_cache_config:
+  name: 'vector-search-cache'
+  template: 'distributed'
+  encoding: 'application/x-protostream'
+  indexing: true
+  indexing_storage: 'filesystem'
+  indexing_entities:
+    - 'com.example.YourEntity'  # Must be registered first by your application
+```
+
+**Note:** Infinispan requires at least one indexed entity when indexing is enabled. Your application must register the ProtoStream schema before creating the indexed cache, or the cache creation will fail.
+
+For more details, refer to:
+* [Vector Search Documentation](https://infinispan.org/docs/stable/titles/query/query.html#vector-search_ickl)
+* [Vector Search Quickstart](https://infinispan.org/blog/2026/04/30/vector-search-quickstart)
+
+NOTE: While dowsntream product Data Grid exposes Vector Search capabilities, it's not yet officially supported.
+
 License
 -------
 
@@ -254,3 +286,4 @@ Author Information
 * [Guido Grazioli](https://github.com/guidograzioli)
 * [Romain Pelisse](https://github.com/rpelisse)
 * [Matthew Fernandez](https://github.com/l3acon)
+* [Ranabir Chakraborty](https://github.com/RanabirChakraborty)

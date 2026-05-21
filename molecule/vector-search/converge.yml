@@ -1,0 +1,83 @@
+---
+- name: Converge - Deploy Infinispan with Vector Search
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Install Infinispan with vector search cache
+      ansible.builtin.include_role:
+        name: infinispan
+      vars:
+        infinispan_supervisor_password: "vectorsearch123"
+        infinispan_users:
+          - { name: 'vectoruser', password: 'vectorpass', roles: 'admin' }
+
+    - name: Wait for Infinispan REST API to be ready
+      ansible.builtin.uri:
+        url: http://localhost:11222/rest/v2/cache-managers/default/health/status
+        url_username: "supervisor"
+        url_password: "vectorsearch123"
+        force_basic_auth: true
+        status_code: 200
+      retries: 60
+      delay: 3
+      register: result
+      until: result.status == 200
+
+    - name: Pre-register Protobuf schema for Vector Search
+      ansible.builtin.uri:
+        url: "http://localhost:11222/rest/v2/schemas/product-embedding.proto"
+        method: POST
+        url_username: "supervisor"
+        url_password: "vectorsearch123"
+        force_basic_auth: true
+        headers:
+          Content-Type: "text/plain"
+        body_format: raw
+        body: |
+          syntax = "proto2";
+          package ansible.test;
+
+          /**
+           * @Indexed
+           */
+          message Product {
+            /** @Keyword(projectable = true, sortable = true) */
+            optional string id = 1;
+
+            /** @Keyword(projectable = true, sortable = true) */
+            optional string name = 2;
+
+            /** @Keyword(projectable = true, normalizer = "lowercase") */
+            optional string category = 3;
+
+            /** @Basic(projectable = true, sortable = true) */
+            optional double price = 4;
+
+            /** @Text */
+            optional string description = 5;
+
+            /** @Vector(dimension = 3) */
+            repeated float embedding = 6;
+          }
+        status_code:
+          - 200
+          - 201
+          - 409
+
+    - name: Create vector search cache via infinispan_cache role
+      ansible.builtin.include_role:
+        name: infinispan_cache
+      vars:
+        infinispan_deployer_user: "supervisor"
+        infinispan_deployer_password: "vectorsearch123"
+        infinispan_cache_config:
+          name: products
+          template: distributed
+          mode: SYNC
+          statistics: true
+          encoding: application/x-protostream
+          indexing: true
+          indexing_storage: filesystem
+          indexing_startup_mode: AUTO
+          indexing_entities:
+            - "ansible.test.Product"

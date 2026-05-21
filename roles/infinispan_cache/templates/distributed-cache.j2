@@ -29,15 +29,15 @@
           when-full="{{ infinispan_cache_config.memory_when_full|default('NONE') }}"
           storage="{{ infinispan_cache_config.memory_storage|default('HEAP') }}"/>
 {% if infinispan_cache_config.indexing is defined and infinispan_cache_config.indexing %}
-  <indexing enabled="true"
-            storage="{{ infinispan_cache_config.indexing_storage|default('filesystem') }}"
-            path="{{ infinispan_cache_config.indexing_path|default('.') }}" >
+  <indexing storage="{{ infinispan_cache_config.indexing_storage|default('filesystem') }}"{% if infinispan_cache_config.indexing_path is defined %} path="{{ infinispan_cache_config.indexing_path }}"{% endif %}{% if infinispan_cache_config.indexing_startup_mode is defined %} startup-mode="{{ infinispan_cache_config.indexing_startup_mode }}"{% endif %}{% if infinispan_cache_config.indexing_entities is defined and infinispan_cache_config.indexing_entities|length > 0 %}>
     <indexed-entities>
 {% for entity in infinispan_cache_config.indexing_entities %}
       <indexed-entity>{{ entity }}</indexed-entity>
 {% endfor %}
     </indexed-entities>
   </indexing>
+{% else %} />
+{% endif %}
 {% endif %}
   <partition-handling when-split="{{ infinispan_cache_config.partition_handling_when_split|default('ALLOW_READ_WRITES') }}" />
 {% if infinispan_cache_config.persistence is defined and infinispan_cache_config.persistence %}

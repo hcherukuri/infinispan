@@ -74,9 +74,9 @@
     register: create_cache_response
     changed_when:
       - create_cache_response.status in [200, 201]
-    failed_when:
-      - create_cache_response.status not in [200, 201, 400]
-      - create_cache_response.status == 400 and 'already exists' not in (create_cache_response.content | default(''))
+    failed_when: >
+      create_cache_response.status not in [200, 201, 400] or
+      (create_cache_response.status == 400 and 'already exists' not in (create_cache_response.content | default('')))
 
   - name: "Cache {{ cache_name }} created by cluster (race condition)"
     ansible.builtin.debug:
