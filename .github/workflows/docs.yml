@@ -8,11 +8,81 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+"
   workflow_dispatch:
 
+env:
+  COLORTERM: 'yes'
+  TERM: 'xterm-256color'
+  PYTEST_ADDOPTS: '--color=yes'
+
 jobs:
   docs:
-    uses: ansible-middleware/github-actions/.github/workflows/docs.yml@main
-    secrets: inherit
-    with:
-      fqcn: 'middleware_automation/infinispan'
-      collection_fqcn: 'middleware_automation.infinispan'
-      historical_docs: 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      checks: write
+      contents: write
+      deployments: write
+      packages: write
+      pages: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          path: ansible_collections/middleware_automation/infinispan
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Ensure release tags exist for changelog generation
+        working-directory: ansible_collections/middleware_automation/infinispan
+        run: |
+          if ! git describe --abbrev=0 --tags >/dev/null 2>&1; then
+            echo "No release tags in this repository; fetching from ansible-middleware/infinispan"
+            git fetch https://github.com/ansible-middleware/infinispan.git '+refs/tags/*:refs/tags/*'
+          fi
+          git describe --abbrev=0 --tags
+
+      - name: Configure git for docs publish on forks
+        working-directory: ansible_collections/middleware_automation/infinispan
+        run: |
+          # collection-docs-action runs `git checkout gh-pages`; avoid ambiguity when
+          # both origin/gh-pages and upstream/gh-pages exist on forks.
+          git remote remove upstream 2>/dev/null || true
+          git branch -rd upstream/gh-pages 2>/dev/null || true
+          git config checkout.defaultRemote origin
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+          cache: 'pip'
+          cache-dependency-path: ansible_collections/middleware_automation/infinispan/docs/requirements.txt
+
+      - name: Install doc dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ansible_collections/middleware_automation/infinispan/docs/requirements.txt
+          if [ -f ansible_collections/middleware_automation/infinispan/requirements.txt ]; then
+            pip install -r ansible_collections/middleware_automation/infinispan/requirements.txt
+          fi
+          sudo apt --fix-missing update
+          sudo apt install -y sed hub
+
+      - name: Create default collection path
+        run: |
+          mkdir -p /home/runner/.ansible/
+          ln -s ${{ github.workspace }} /home/runner/.ansible/collections
+
+      - name: Create changelog and documentation
+        uses: ansible-middleware/collection-docs-action@main
+        with:
+          collection_fqcn: middleware_automation.infinispan
+          collection_repo: ${{ github.repository }}
+          dependencies: false
+          commit_changelog: false
+          commit_ghpages: true
+          changelog_release: false
+          generate_docs: true
+          path: ansible_collections/middleware_automation/infinispan
+          token: ${{ secrets.GITHUB_TOKEN }}
+          bot_email: ansible-middleware-core@redhat.com
+          bot_account: ansible-middleware-core
+          historical_docs: 'false'

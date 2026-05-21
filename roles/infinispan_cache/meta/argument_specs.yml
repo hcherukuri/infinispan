@@ -29,7 +29,11 @@ argument_specs:
             infinispan_cache_config:
                 # line 6 of infinispan_cache/defaults/main.yml
                 default: "{}"
-                description: "dict object with configuration for the cache to deploy"
+                description: >-
+                    Dict for templating cache XML (see roles/infinispan_cache/templates/).
+                    Indexing / vector search keys: indexing (bool), indexing_storage,
+                    indexing_path, indexing_startup_mode, indexing_entities (list of
+                    ProtoStream type names; required when indexing is true).
                 type: "dict"
             infinispan_deployer_password:
                 # line 3 of infinispan_cache/vars/main.yml

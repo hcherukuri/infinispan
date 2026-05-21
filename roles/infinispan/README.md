@@ -272,7 +272,7 @@ For more details, refer to:
 * [Vector Search Documentation](https://infinispan.org/docs/stable/titles/query/query.html#vector-search_ickl)
 * [Vector Search Quickstart](https://infinispan.org/blog/2026/04/30/vector-search-quickstart)
 
-NOTE: While dowsntream product Data Grid exposes Vector Search capabilities, it's not yet officially supported.
+NOTE: While downstream product Data Grid exposes Vector Search capabilities, it's not yet officially supported.
 
 License
 -------

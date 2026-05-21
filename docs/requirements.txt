@@ -2,6 +2,8 @@ antsibull>=0.17.0
 antsibull-docs
 antsibull-changelog
 ansible-core>=2.16.0
+# ansible-basic-sphinx-ext still imports pkg_resources (removed in setuptools 82+)
+setuptools>=65.0,<82
 sphinx-rtd-theme
 git+https://github.com/felixfontein/ansible-basic-sphinx-ext
 myst-parser

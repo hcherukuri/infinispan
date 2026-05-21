@@ -24,7 +24,7 @@
           when-full="{{ cache_config.memory_when_full|default('NONE') }}"
           storage="{{ cache_config.memory_storage|default('HEAP') }}"/>
 {% if cache_config.indexing is defined and cache_config.indexing %}
-  <indexing storage="{{ cache_config.indexing_storage|default('filesystem') }}"{% if cache_config.indexing_path is defined %} path="{{ cache_config.indexing_path }}"{% endif %}{% if cache_config.indexing_entities is defined and cache_config.indexing_entities|length > 0 %}>
+  <indexing storage="{{ cache_config.indexing_storage|default('filesystem') }}"{% if cache_config.indexing_path is defined %} path="{{ cache_config.indexing_path }}"{% endif %}{% if cache_config.indexing_startup_mode is defined %} startup-mode="{{ cache_config.indexing_startup_mode }}"{% endif %}{% if cache_config.indexing_entities is defined and cache_config.indexing_entities|length > 0 %}>
     <indexed-entities>
 {% for entity in cache_config.indexing_entities %}
       <indexed-entity>{{ entity }}</indexed-entity>
